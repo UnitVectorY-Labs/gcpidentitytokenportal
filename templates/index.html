@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>GCP Identity Token Portal</title>
+    <script src="https://unpkg.com/htmx.org@1.9.2"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f3f4f6;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        .container {
+            background-color: #ffffff;
+            padding: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 800px;
+        }
+        h1 {
+            text-align: center;
+            color: #3b82f6;
+            margin-bottom: 0.5rem;  /* reduced from 1.5rem */
+        }
+        .description {
+            text-align: center;
+            color: #6b7280;
+            margin-bottom: 1.5rem;
+            font-size: 0.95rem;
+            line-height: 1.4;
+        }
+        form {
+            display: flex;
+            flex-direction: column;
+        }
+        label {
+            margin-bottom: 0.5rem;
+            color: #4b5563;
+            font-weight: bold;
+        }
+        input[type="text"], select {
+            padding: 0.5rem;
+            border: 1px solid #d1d5db;
+            border-radius: 4px;
+            margin-bottom: 1rem;
+            background-color: #f9fafb;
+        }
+        button {
+            padding: 0.75rem;
+            background-color: #3b82f6;
+            color: #ffffff;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #2563eb;
+        }
+        #result {
+            margin-top: 1rem;
+            padding: 1rem;
+            background-color: #f9fafb;
+            border: 1px solid #e5e7eb;
+            border-radius: 4px;
+            word-wrap: break-word;
+            white-space: pre-wrap;
+            min-height: 240px;
+        }
+        #error {
+            color: red;
+            margin-top: 1rem;
+        }
+        #copy-button {
+            visibility: hidden;
+            margin-top: 0.5rem;
+            padding: 0.5rem 1rem;
+            background-color: #4ade80;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background-color 0.3s;
+        }
+        #copy-button:hover {
+            background-color: #22c55e;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>GCP Identity Token Portal</h1>
+        <p class="description">
+            Generate identity tokens for authenticating with Google Cloud Platform services. 
+            These tokens can be used to access GCP resources and APIs securely.<br>
+            Using service account: <span id="service-account" 
+                                      hx-get="/service-account" 
+                                      hx-trigger="load"
+                                      hx-swap="innerHTML">Loading...</span>
+        </p>
+        <form hx-post="/token" hx-target="#result" hx-swap="innerHTML" hx-trigger="submit">
+            {{if .Audiences}}
+                <label for="audience">Select Audience:</label>
+                <select id="audience" name="audience" required>
+                    <option value="" disabled selected>Select an audience</option>
+                    {{range .Audiences}}
+                        <option value="{{.}}">{{.}}</option>
+                    {{end}}
+                </select>
+            {{else}}
+                <label for="audience">Audience:</label>
+                <input type="text" id="audience" name="audience" placeholder="Enter audience" required>
+            {{end}}
+            <button type="submit">Generate Token</button>
+            <div id="error" hx-target="this" hx-swap="innerHTML"></div>
+        </form>
+        <div id="result"></div>
+        <button id="copy-button" onclick="copyText()">Copy</button>
+    </div>
+    <script>
+        function copyText() {
+            const text = document.getElementById('result').innerText.trim();
+            if (text) {
+                navigator.clipboard.writeText(text);
+            }
+        }
+
+        document.addEventListener('htmx:afterSwap', function(event){
+            if (event.target.id === 'result') {
+                document.getElementById('copy-button').style.visibility = 'visible';
+            }
+        });
+    </script>
+</body>
+</html>
