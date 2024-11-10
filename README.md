@@ -19,7 +19,7 @@ docker run --name gcpidentitytokenportal -d -p 8080:8080 \
   -v /path/to/your-service-account-key.json:/creds.json \
   -v /path/to/your-config.yaml:/config.yaml \
   -e GOOGLE_APPLICATION_CREDENTIALS=/creds.json \
-  ghcr.io/unitvectory-labs/gcpidentitytokenportal:dev
+  ghcr.io/unitvectory-labs/gcpidentitytokenportal:v0.1.0
 ```
 
 This application is intended to run on GCP in an environment such as Cloud Run.
