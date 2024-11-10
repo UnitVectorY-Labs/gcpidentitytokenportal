@@ -3,15 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <title>GCP Identity Token Portal</title>
-    <script src="https://unpkg.com/htmx.org@1.9.2"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
             background-color: #f3f4f6;
             display: flex;
             justify-content: center;
-            align-items: center;
             height: 100vh;
+            margin: 0;
+            overflow: auto;
         }
         .container {
             background-color: #ffffff;
@@ -20,11 +20,14 @@
             box-shadow: 0 2px 8px rgba(0,0,0,0.1);
             width: 100%;
             max-width: 800px;
+            margin: 2rem;
+            box-sizing: border-box;
         }
         h1 {
             text-align: center;
             color: #3b82f6;
-            margin-bottom: 0.5rem;  /* reduced from 1.5rem */
+            margin-top: 0;
+            margin-bottom: 0.5rem;
         }
         .description {
             color: #6b7280;
@@ -40,12 +43,14 @@
             display: flex;
             align-items: center;
             margin-bottom: 1rem;
+            flex-wrap: wrap;
         }
         label {
             margin-right: 0.5rem;
             color: #4b5563;
             font-weight: bold;
-            width: 150px;
+            width: 100%;
+            max-width: 150px;
         }
         input[type="text"], select {
             padding: 0.5rem;
@@ -53,6 +58,7 @@
             border-radius: 4px;
             background-color: #f9fafb;
             flex: 1;
+            min-width: 0;
         }
         input[disabled] {
             background-color: #e5e7eb;
@@ -100,7 +106,18 @@
         #copy-button:hover {
             background-color: #22c55e;
         }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 1rem;
+            }
+            label {
+                width: 100%;
+                margin-bottom: 0.5rem;
+            }
+        }
     </style>
+    <script src="https://unpkg.com/htmx.org@2.0.3/dist/htmx.min.js" integrity="sha384-0895/pl2MU10Hqc6jd4RvrthNlDiE9U1tWmX7WRESftEDRosgxNsQG/Ze9YMRzHq" crossorigin="anonymous"></script>
 </head>
 <body>
     <div class="container">
