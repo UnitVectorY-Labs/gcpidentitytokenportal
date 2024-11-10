@@ -27,7 +27,6 @@
             margin-bottom: 0.5rem;  /* reduced from 1.5rem */
         }
         .description {
-            text-align: center;
             color: #6b7280;
             margin-bottom: 1.5rem;
             font-size: 0.95rem;
@@ -37,17 +36,27 @@
             display: flex;
             flex-direction: column;
         }
+        .form-row {
+            display: flex;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
         label {
-            margin-bottom: 0.5rem;
+            margin-right: 0.5rem;
             color: #4b5563;
             font-weight: bold;
+            width: 150px;
         }
         input[type="text"], select {
             padding: 0.5rem;
             border: 1px solid #d1d5db;
             border-radius: 4px;
-            margin-bottom: 1rem;
             background-color: #f9fafb;
+            flex: 1;
+        }
+        input[disabled] {
+            background-color: #e5e7eb;
+            cursor: not-allowed;
         }
         button {
             padding: 0.75rem;
@@ -97,25 +106,28 @@
     <div class="container">
         <h1>GCP Identity Token Portal</h1>
         <p class="description">
-            Generate identity tokens for authenticating with Google Cloud Platform services. 
-            These tokens can be used to access GCP resources and APIs securely.<br>
-            Using service account: <span id="service-account" 
-                                      hx-get="/service-account" 
-                                      hx-trigger="load"
-                                      hx-swap="innerHTML">Loading...</span>
+            Generate identity tokens for Google Cloud Platform (GCP) using the configured Service Account. These tokens are created for a specified audience and can be used, for example, to access Cloud Run.<br>
         </p>
         <form hx-post="/token" hx-target="#result" hx-swap="innerHTML" hx-trigger="submit">
+            <div class="form-row" hx-get="/service-account" hx-trigger="load" hx-target="this" hx-swap="innerHTML">
+                <label>Service Account:</label>
+                <input type="text" value="Loading..." disabled>
+            </div>
             {{if .Audiences}}
-                <label for="audience">Select Audience:</label>
-                <select id="audience" name="audience" required>
-                    <option value="" disabled selected>Select an audience</option>
-                    {{range .Audiences}}
-                        <option value="{{.}}">{{.}}</option>
-                    {{end}}
-                </select>
+                <div class="form-row">
+                    <label for="audience">Select Audience:</label>
+                    <select id="audience" name="audience" required>
+                        <option value="" disabled selected>Select an audience</option>
+                        {{range .Audiences}}
+                            <option value="{{.}}">{{.}}</option>
+                        {{end}}
+                    </select>
+                </div>
             {{else}}
-                <label for="audience">Audience:</label>
-                <input type="text" id="audience" name="audience" placeholder="Enter audience" required>
+                <div class="form-row">
+                    <label for="audience">Audience:</label>
+                    <input type="text" id="audience" name="audience" placeholder="Enter audience" required>
+                </div>
             {{end}}
             <button type="submit">Generate Token</button>
             <div id="error" hx-target="this" hx-swap="innerHTML"></div>

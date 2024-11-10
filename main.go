@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"html/template"
 	"log"
 	"net/http"
@@ -19,45 +20,28 @@ type Config struct {
 	Audiences []string `yaml:"audiences"`
 }
 
-func main() {
-	ctx := context.Background()
+func handleIndex(tmpl *template.Template, cfg Config) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/" {
+			http.NotFound(w, r)
+			return
+		}
 
-	// Load configuration
-	cfg, err := loadConfig()
-	if err != nil {
-		log.Fatalf("Failed to load configuration: %v", err)
-	}
-
-	// Parse HTML template
-	tmpl, err := template.ParseFiles("templates/index.html")
-	if err != nil {
-		log.Fatalf("Failed to parse template: %v", err)
-	}
-
-	// Load credentials directly
-	credentialsFile := os.Getenv("GOOGLE_APPLICATION_CREDENTIALS")
-	if credentialsFile == "" && !metadata.OnGCE() {
-		log.Fatal("No credentials provided. Set GOOGLE_APPLICATION_CREDENTIALS or run on GCP.")
-	}
-
-	// Set up HTTP handlers using standalone functions
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		// Render the main HTML page
 		err := tmpl.Execute(w, cfg)
 		if err != nil {
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			log.Printf("Template execution error: %v", err)
 		}
-	})
+	}
+}
 
-	http.HandleFunc("/token", func(w http.ResponseWriter, r *http.Request) {
-		// Only allow POST requests
+func handleToken(ctx context.Context, cfg Config, credentialsFile string) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
 			http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
 			return
 		}
 
-		// Parse form data
 		if err := r.ParseForm(); err != nil {
 			http.Error(w, "Invalid form data", http.StatusBadRequest)
 			return
@@ -65,7 +49,6 @@ func main() {
 
 		audience := r.FormValue("audience")
 
-		// Validate audience if audiences are configured
 		if len(cfg.Audiences) > 0 {
 			valid := false
 			for _, a := range cfg.Audiences {
@@ -80,8 +63,8 @@ func main() {
 			}
 		}
 
-		// Generate the token using idtoken package
 		var ts oauth2.TokenSource
+		var err error
 		if credentialsFile != "" {
 			ts, err = idtoken.NewTokenSource(ctx, audience, idtoken.WithCredentialsFile(credentialsFile))
 		} else {
@@ -101,12 +84,13 @@ func main() {
 			return
 		}
 
-		// Return the token as plain text
 		w.Header().Set("Content-Type", "text/plain")
 		w.Write([]byte(token.AccessToken))
-	})
+	}
+}
 
-	http.HandleFunc("/service-account", func(w http.ResponseWriter, r *http.Request) {
+func handleServiceAccount(credentialsFile string) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
 		var email string
 		var err error
 
@@ -133,9 +117,39 @@ func main() {
 			email = creds.ClientEmail
 		}
 
-		w.Header().Set("Content-Type", "text/plain")
-		w.Write([]byte(email))
-	})
+		w.Header().Set("Content-Type", "text/html")
+		w.Write([]byte(fmt.Sprintf(`
+		<label>Service Account:</label>
+		<input type="text" value="%s" disabled>
+	`, email)))
+	}
+}
+
+func main() {
+	ctx := context.Background()
+
+	// Load configuration
+	cfg, err := loadConfig()
+	if err != nil {
+		log.Fatalf("Failed to load configuration: %v", err)
+	}
+
+	// Parse HTML template
+	tmpl, err := template.ParseFiles("templates/index.html")
+	if err != nil {
+		log.Fatalf("Failed to parse template: %v", err)
+	}
+
+	// Load credentials directly
+	credentialsFile := os.Getenv("GOOGLE_APPLICATION_CREDENTIALS")
+	if credentialsFile == "" && !metadata.OnGCE() {
+		log.Fatal("No credentials provided. Set GOOGLE_APPLICATION_CREDENTIALS or run on GCP.")
+	}
+
+	// Set up HTTP handlers
+	http.HandleFunc("/", handleIndex(tmpl, cfg))
+	http.HandleFunc("/token", handleToken(ctx, cfg, credentialsFile))
+	http.HandleFunc("/service-account", handleServiceAccount(credentialsFile))
 
 	// Start the server
 	port := os.Getenv("PORT")
