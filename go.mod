@@ -1,6 +1,6 @@
 module gcpidentitytokenportal
 
-go 1.23
+go 1.23.4
 
 require (
 	cloud.google.com/go/compute/metadata v0.5.2
