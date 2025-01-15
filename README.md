@@ -4,7 +4,7 @@ Web portal for vending GCP identity tokens via metadata service with flexible au
 
 ## Overview
 
-`gcpidentitytokenportal` is a simple web application that provides an interface for vending GCP identity tokens with the ability to specify the audience. This is useful for scenarios where you need to obtain a GCP identity token for testing or debugging purposes. The service account used to obtain the identity token is determined by the service account that the application is running as.
+`gcpidentitytokenportal` is a simple web application that provides an interface for vending GCP identity tokens with the ability to specify the audience. When running on GCP it can use the built in service account, outside of GCP you can specify the path to the JSON file for the service account, or on Kubernetes it can utilize Workload Identity Federation to impersonate a service account. This is useful for scenarios where you need to obtain a GCP identity token for testing or debugging purposes. The service account used to obtain the identity token is determined by the service account that the application is running as.
 
 ![Application Interface](./assets/interface.png)
 
@@ -43,3 +43,87 @@ audiences:
   - https://api.example.com
   - https://service.example.com
 ```
+
+## Kubernetes with Workload Identity Federation & Account Impersonation
+
+When running this application in a Kubernetes cluster, you can use the Kubernetes service account token to impersonate a service account with the necessary permissions to obtain the identity token even when not running on GKE. This assumes that Workload Identity Federation has been configured for the cluster including the public key for Kubernetes registered with the Workload Identity Pool.
+
+Once that is done, **gcpidentitytokenportal** can be configured to use Google's syntax for impersonation. The following is an example of a ConfigMap and Deployment that can be used to run the application in a Kubernetes cluster:
+
+```yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: gcp-wif-config
+data:
+  credential-configuration.json: |
+    {
+      "universe_domain": "googleapis.com",
+      "type": "external_account",
+      "audience": "//iam.googleapis.com/projects/<PROJECT_NUMBER>/locations/global/workloadIdentityPools/<POOL_NAME>/providers/<PROVIDER_NAME>",
+      "subject_token_type": "urn:ietf:params:oauth:token-type:jwt",
+      "token_url": "https://sts.googleapis.com/v1/token",
+      "credential_source": {
+        "file": "/var/run/secrets/tokens/gcp-token",
+        "format": {
+          "type": "text"
+        }
+      },
+      "service_account_impersonation_url": "https://iamcredentials.googleapis.com/v1/projects/-/serviceAccounts/<SERVICE_ACCOUNT_EMAIL>:generateAccessToken"
+    }
+```
+
+Be sure to replace the placeholder values with your specific configuration settings including `<PROJECT_NUMBER>`, `<POOL_NAME>`, `<PROVIDER_NAME>`, and `<SERVICE_ACCOUNT_EMAIL>`.
+
+This `credential-configuration.json` in the config map contains no secrets and is mounted as a volume in the deployment and is used to obtain the identity token.
+
+The following is an example of a Deployment that can be used to run the application in a Kubernetes cluster ouside of GKE that is configured with Workload Identity Federation:
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gcpidentitytokenportal
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: gcpidentitytokenportal
+  template:
+    metadata:
+      labels:
+        app: gcpidentitytokenportal
+    spec:
+      serviceAccountName: <KUBERNETES_SERVICE_ACCOUNT_NAME>
+      containers:
+        - name: gcpidentitytokenportal
+          image: ghcr.io/unitvectory-labs/gcpidentitytokenportal:v0.1.0
+          ports:
+            - containerPort: 8080
+          env:
+            - name: GOOGLE_APPLICATION_CREDENTIALS
+              value: "/etc/workload-identity/credential-configuration.json"
+          volumeMounts:
+            - mountPath: /var/run/secrets/tokens
+              name: token-volume
+              readOnly: true
+            - name: workload-identity-credential-configuration
+              mountPath: "/etc/workload-identity"
+              readOnly: true
+      volumes:
+        - name: token-volume
+          projected:
+            sources:
+              - serviceAccountToken:
+                  path: gcp-token
+                  expirationSeconds: 3600
+                  audience: https://iam.googleapis.com/projects/<PROJECT_NUMBER>/locations/global/workloadIdentityPools/<POOL_NAME>/providers/<PROVIDER_NAME>
+        - name: workload-identity-credential-configuration
+          configMap:
+            name: gcp-wif-config
+```
+
+Be sure to replace the placeholder values with your specific configuration settings including `<PROJECT_NUMBER>`, `<POOL_NAME>`, `<PROVIDER_NAME>`, and `<KUBERNETES_SERVICE_ACCOUNT_NAME>`.
+
+In order for this to work the service account that we are impersonating needs to have the `Workload Identity User` grant the principal for the Workload Identiy Federation. This principal is in the following format: `principal://iam.googleapis.com/projects/<PROJECT_NUMBER>/locations/global/workloadIdentityPools/<POOL_NAME>/subject/system:serviceaccount:<NAMESPACE>:<KUBERNETES_SERVICE_ACCOUNT_NAME>`

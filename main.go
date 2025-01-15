@@ -13,6 +13,9 @@ import (
 	"golang.org/x/oauth2"
 	"google.golang.org/api/idtoken"
 	"gopkg.in/yaml.v2"
+
+	gcp_config "gcpidentitytokenportal/internal/config"
+	token "gcpidentitytokenportal/internal/token"
 )
 
 // Config holds the application configuration
@@ -35,7 +38,7 @@ func handleIndex(tmpl *template.Template, cfg Config) http.HandlerFunc {
 	}
 }
 
-func handleToken(ctx context.Context, cfg Config, credentialsFile string) http.HandlerFunc {
+func handleToken(ctx context.Context, cfg Config, credentialsFile string, googleApplicationCredentials *gcp_config.GoogleApplicationCredentials) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
 			http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
@@ -61,6 +64,18 @@ func handleToken(ctx context.Context, cfg Config, credentialsFile string) http.H
 				http.Error(w, "Invalid audience selected", http.StatusBadRequest)
 				return
 			}
+		}
+
+		if googleApplicationCredentials != nil && googleApplicationCredentials.UsesImpersonation() {
+			token, err := token.GetIdentityToken(googleApplicationCredentials, audience)
+			if err != nil {
+				http.Error(w, "Failed to get identity token", http.StatusInternalServerError)
+				return
+			}
+
+			w.Header().Set("Content-Type", "text/plain")
+			w.Write([]byte(token))
+			return
 		}
 
 		var ts oauth2.TokenSource
@@ -89,12 +104,14 @@ func handleToken(ctx context.Context, cfg Config, credentialsFile string) http.H
 	}
 }
 
-func handleServiceAccount(credentialsFile string) http.HandlerFunc {
+func handleServiceAccount(credentialsFile string, googleApplicationCredentials *gcp_config.GoogleApplicationCredentials) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var email string
 		var err error
 
-		if metadata.OnGCE() {
+		if googleApplicationCredentials != nil && googleApplicationCredentials.UsesImpersonation() {
+			email = googleApplicationCredentials.GetImpersonationEmail()
+		} else if metadata.OnGCE() {
 			email, err = metadata.EmailWithContext(context.Background(), "")
 			if err != nil {
 				http.Error(w, "Failed to get service account email", http.StatusInternalServerError)
@@ -145,11 +162,23 @@ func main() {
 	if credentialsFile == "" && !metadata.OnGCE() {
 		log.Fatal("No credentials provided. Set GOOGLE_APPLICATION_CREDENTIALS or run on GCP.")
 	}
+	// Initialize GoogleApplicationCredentials if the credentials file exists
+	var googleApplicationCredentials *gcp_config.GoogleApplicationCredentials
+	if credentialsFile != "" {
+		if _, err := os.Stat(credentialsFile); err == nil {
+			googleApplicationCredentials, err = gcp_config.LoadGoogleConfig(credentialsFile)
+			if err != nil {
+				log.Fatalf("Failed to load Google config: %v", err)
+			}
+		} else if !os.IsNotExist(err) {
+			log.Fatalf("Error checking credentials file: %v", err)
+		}
+	}
 
 	// Set up HTTP handlers
 	http.HandleFunc("/", handleIndex(tmpl, cfg))
-	http.HandleFunc("/token", handleToken(ctx, cfg, credentialsFile))
-	http.HandleFunc("/service-account", handleServiceAccount(credentialsFile))
+	http.HandleFunc("/token", handleToken(ctx, cfg, credentialsFile, googleApplicationCredentials))
+	http.HandleFunc("/service-account", handleServiceAccount(credentialsFile, googleApplicationCredentials))
 
 	// Start the server
 	port := os.Getenv("PORT")
