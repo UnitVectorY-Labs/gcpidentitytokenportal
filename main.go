@@ -14,8 +14,8 @@ import (
 	"google.golang.org/api/idtoken"
 	"gopkg.in/yaml.v2"
 
-	gcp_config "gcpidentitytokenportal/internal/config"
-	token "gcpidentitytokenportal/internal/token"
+	gcp_config "github.com/UnitVectorY-Labs/gcpidentitytokenportal/internal/config"
+	token "github.com/UnitVectorY-Labs/gcpidentitytokenportal/internal/token"
 )
 
 // Config holds the application configuration
