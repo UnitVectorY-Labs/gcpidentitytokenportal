@@ -10,7 +10,7 @@ import (
 	"os"
 	"strings"
 
-	gcp_config "gcpidentitytokenportal/internal/config"
+	gcp_config "github.com/UnitVectorY-Labs/gcpidentitytokenportal/internal/config"
 )
 
 const (

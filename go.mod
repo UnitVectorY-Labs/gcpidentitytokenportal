@@ -1,4 +1,4 @@
-module gcpidentitytokenportal
+module github.com/UnitVectorY-Labs/gcpidentitytokenportal
 
 go 1.23.5
 
