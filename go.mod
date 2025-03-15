@@ -1,11 +1,10 @@
 module github.com/UnitVectorY-Labs/gcpidentitytokenportal
 
 go 1.24.1
-
 require (
 	cloud.google.com/go/compute/metadata v0.6.0
 	golang.org/x/oauth2 v0.28.0
-	google.golang.org/api v0.225.0
+	google.golang.org/api v0.226.0
 	gopkg.in/yaml.v2 v2.4.0
 )
 
