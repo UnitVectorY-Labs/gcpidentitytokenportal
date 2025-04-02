@@ -1,6 +1,6 @@
 module github.com/UnitVectorY-Labs/gcpidentitytokenportal
 
-go 1.24.1 // GOVERSION
+go 1.24.2 // GOVERSION
 
 require (
 	cloud.google.com/go/compute/metadata v0.6.0
