@@ -4,7 +4,7 @@ go 1.24.3 // GOVERSION
 
 require (
 	cloud.google.com/go/compute/metadata v0.6.0
-	golang.org/x/oauth2 v0.29.0
+	golang.org/x/oauth2 v0.30.0
 	google.golang.org/api v0.231.0
 	gopkg.in/yaml.v2 v2.4.0
 )
