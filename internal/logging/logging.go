@@ -239,6 +239,9 @@ func mergeFields(fields []Fields) Fields {
 	}
 	result := make(Fields)
 	for _, f := range fields {
+		if f == nil {
+			continue
+		}
 		for k, v := range f {
 			result[k] = v
 		}

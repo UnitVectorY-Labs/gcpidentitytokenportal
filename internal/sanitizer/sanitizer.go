@@ -17,8 +17,8 @@ var sensitiveFields = []string{
 	"Authorization",
 }
 
-// jwtPattern matches JWT-like strings (xxx.yyy.zzz where each part is base64)
-var jwtPattern = regexp.MustCompile(`\b[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\b`)
+// jwtPattern matches JWT-like strings (xxx.yyy.zzz where each part has minimum length typical of JWTs)
+var jwtPattern = regexp.MustCompile(`\b[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{20,}\b`)
 
 // RedactedValue is the replacement for sensitive field values
 const RedactedValue = "[REDACTED]"

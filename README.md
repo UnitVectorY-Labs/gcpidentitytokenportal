@@ -332,7 +332,8 @@ Permission 'iam.serviceAccounts.getOpenIdToken' denied on resource
 Debug endpoints and verbose logging should be disabled in production after troubleshooting:
 
 ```bash
-kubectl set env deployment/gcpidentitytokenportal LOG_LEVEL=info ENABLE_DEBUG_ENDPOINTS-
+kubectl set env deployment/gcpidentitytokenportal LOG_LEVEL=info
+kubectl set env deployment/gcpidentitytokenportal ENABLE_DEBUG_ENDPOINTS-
 ```
 
 **Never log or expose:**

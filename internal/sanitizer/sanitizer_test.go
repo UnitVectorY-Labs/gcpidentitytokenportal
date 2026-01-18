@@ -60,9 +60,9 @@ func TestSanitizeJSON(t *testing.T) {
 		},
 		{
 			name:  "mixed content with JWT in message",
-			input: []byte(`{"error":{"message":"Invalid token: eyJhbG.eyJzdWIi.sig123"}}`),
+			input: []byte(`{"error":{"message":"Invalid token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.dozjgNryP4J3jVmNHl0w"}}`),
 			contains: []string{"[REDACTED_JWT]"},
-			excludes: []string{"eyJhbG.eyJzdWIi.sig123"},
+			excludes: []string{"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9"},
 		},
 	}
 
@@ -102,18 +102,23 @@ func TestSanitizeString(t *testing.T) {
 		},
 		{
 			name:     "JWT pattern",
-			input:    "Invalid token: eyJhbGciOiJSUzI1NiJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.signature",
+			input:    "Invalid token: eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.SignatureAtLeast20CharsLong",
 			expected: "Invalid token: [REDACTED_JWT]",
 		},
 		{
 			name:     "multiple JWT patterns",
-			input:    "Token1: abc.def.ghi Token2: xyz.uvw.rst",
+			input:    "Token1: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.TJVA95OrM7E2cBab30RMHrHDcEfxjoYZgeFONFh7HgQ Token2: eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.Signature1234567890123",
 			expected: "Token1: [REDACTED_JWT] Token2: [REDACTED_JWT]",
 		},
 		{
-			name:     "preserve non-JWT dots",
+			name:     "preserve domain names with dots",
 			input:    "api.example.com returned error",
-			expected: "[REDACTED_JWT] returned error",
+			expected: "api.example.com returned error",
+		},
+		{
+			name:     "redact actual JWT",
+			input:    "Token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4ifQ.dozjgNryP4J3jVmNHl0w5N_XgL0n3I9PlFUP0THsR8U",
+			expected: "Token: [REDACTED_JWT]",
 		},
 	}
 
@@ -158,7 +163,7 @@ func TestExtractGoogleError(t *testing.T) {
 		},
 		{
 			name:         "error with JWT in message",
-			input:        []byte(`{"error":{"code":400,"status":"INVALID_ARGUMENT","message":"Bad token: abc.def.ghi"}}`),
+			input:        []byte(`{"error":{"code":400,"status":"INVALID_ARGUMENT","message":"Bad token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.dozjgNryP4J3jVmNHl0w"}}`),
 			expectedCode: 400,
 			expectedStatus: "INVALID_ARGUMENT",
 			expectedMsg:  "Bad token: [REDACTED_JWT]",
