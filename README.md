@@ -128,7 +128,7 @@ spec:
 
 Be sure to replace the placeholder values with your specific configuration settings including `<PROJECT_NUMBER>`, `<POOL_NAME>`, `<PROVIDER_NAME>`, and `<KUBERNETES_SERVICE_ACCOUNT_NAME>`.
 
-In order for this to work the service account that we are impersonating needs to have the `Workload Identity User` grant the principal for the Workload Identiy Federation. This principal is in the following format: `principal://iam.googleapis.com/projects/<PROJECT_NUMBER>/locations/global/workloadIdentityPools/<POOL_NAME>/subject/system:serviceaccount:<NAMESPACE>:<KUBERNETES_SERVICE_ACCOUNT_NAME>`
+In order for this to work the service account that we are impersonating needs to have the `Workload Identity User` grant the principal for the Workload Identiy Federation. This principal is in the following format: `principal://iam.googleapis.com/projects/<PROJECT_NUMBER>/locations/global/workloadIdentityPools/<POOL_NAME>/subject/system:serviceaccount:<NAMESPACE>:<KUBERNETES_SERVICE_ACCOUNT_NAME>` Alternatively you can set a custom audience that must match in the GCP configuration.
 
 ## Logging Configuration
 
@@ -144,7 +144,7 @@ The application supports structured logging with configurable levels and formats
 
 ### Log Format
 
-**JSON format (default)** - Recommended for Kubernetes/production environments:
+**JSON format (default)** - Recommended:
 ```json
 {"timestamp":"2024-01-15T10:30:00Z","severity":"info","component":"startup","message":"server starting","fields":{"port":"8080","mode":"impersonation"}}
 ```
@@ -227,117 +227,3 @@ Response:
   "allowed_audiences_count": 2
 }
 ```
-
-## Troubleshooting Guide
-
-### Using Request IDs for Debugging
-
-When an error occurs, the response includes a `request_id`. Use this to find the corresponding log entries:
-
-```bash
-# Example error response
-Failed to get identity token. request_id=abc123-def456
-
-# Search logs (in Kubernetes)
-kubectl logs deployment/gcpidentitytokenportal | grep "abc123-def456"
-```
-
-### Common Error Patterns
-
-#### STS Token Exchange Errors
-
-| Error Category | HTTP Status | Typical Cause |
-|----------------|-------------|---------------|
-| `STS_HTTP_ERROR` | N/A | Network connectivity issues to `sts.googleapis.com` |
-| `STS_NON_200` | 400 | Audience mismatch in WIF configuration |
-| `STS_NON_200` | 403 | Pool/provider/condition rejection |
-| `STS_EMPTY_ACCESS_TOKEN` | 200 | Unexpected empty response from STS |
-
-**Example: Audience mismatch (STS 400)**
-```
-audience configured in the projected token doesn't match the WIF provider audience
-```
-
-**Solution**: Verify the `audience` in your Kubernetes projected token matches the WIF provider configuration.
-
-#### IAM Credentials Errors
-
-| Error Category | HTTP Status | Typical Cause |
-|----------------|-------------|---------------|
-| `IAM_HTTP_ERROR` | N/A | Network connectivity issues to `iamcredentials.googleapis.com` |
-| `IAM_NON_200` | 403 | Missing `roles/iam.serviceAccountTokenCreator` or `roles/iam.workloadIdentityUser` |
-| `IAM_NON_200` | 404 | Service account doesn't exist |
-| `IAM_EMPTY_TOKEN` | 200 | Unexpected empty response from IAM |
-
-**Example: Missing permissions (IAM 403)**
-```
-Permission 'iam.serviceAccounts.getOpenIdToken' denied on resource
-```
-
-**Solution**: Grant the Workload Identity principal the `Workload Identity User` role on the target service account.
-
-#### Network Errors
-
-| Error Category | Typical Cause |
-|----------------|---------------|
-| `NETWORK_DNS_ERROR` | DNS resolution failure (check egress policies) |
-| `NETWORK_TIMEOUT` | Connection timeout (firewall or network policy blocking) |
-| `TOKEN_FILE_READ_ERROR` | Kubernetes projected token volume not mounted |
-
-#### Configuration Errors
-
-| Error Category | Typical Cause |
-|----------------|---------------|
-| `CONFIG_MISSING` | Required configuration file not found |
-| `CONFIG_PARSE_ERROR` | Invalid YAML/JSON in configuration |
-| `AUDIENCE_INVALID` | Selected audience not in allowed list |
-
-### Debugging Steps
-
-1. **Enable debug logging temporarily**:
-   ```bash
-   kubectl set env deployment/gcpidentitytokenportal LOG_LEVEL=debug
-   ```
-
-2. **Enable debug endpoint temporarily**:
-   ```bash
-   kubectl set env deployment/gcpidentitytokenportal ENABLE_DEBUG_ENDPOINTS=true
-   ```
-
-3. **Check configuration with debugz**:
-   ```bash
-   kubectl port-forward deployment/gcpidentitytokenportal 8080:8080
-   curl http://localhost:8080/debugz
-   ```
-
-4. **Verify token file is mounted and readable** (from debugz output):
-   ```json
-   {
-     "token_file_exists": true,
-     "token_file_readable": true
-   }
-   ```
-
-5. **Review logs with request ID**:
-   ```bash
-   curl -v -H "X-Request-Id: debug-123" -X POST \
-     -d "audience=https://my-service.example.com" \
-     http://localhost:8080/token
-   
-   kubectl logs deployment/gcpidentitytokenportal | grep "debug-123"
-   ```
-
-### Security Note
-
-Debug endpoints and verbose logging should be disabled in production after troubleshooting:
-
-```bash
-kubectl set env deployment/gcpidentitytokenportal LOG_LEVEL=info
-kubectl set env deployment/gcpidentitytokenportal ENABLE_DEBUG_ENDPOINTS-
-```
-
-**Never log or expose:**
-- Kubernetes service account tokens
-- STS access tokens
-- Identity tokens
-- Authorization headers
