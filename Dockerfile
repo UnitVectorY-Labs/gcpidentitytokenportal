@@ -1,6 +1,9 @@
 # Use the official Golang image for building the application
 FROM golang:1.25.6 AS builder
 
+# Build argument for version injection (defaults to "dev")
+ARG VERSION=dev
+
 # Set the working directory inside the container
 WORKDIR /app
 
@@ -14,8 +17,8 @@ COPY . .
 # Ensures a statically linked binary
 ENV CGO_ENABLED=0
 
-# Build the Go server
-RUN go build -mod=readonly -o server .
+# Build the Go server with version injection
+RUN go build -mod=readonly -o server -ldflags "-X 'main.Version=${VERSION}'" .
 
 # Use a minimal base image for running the compiled binary
 FROM gcr.io/distroless/base-debian13

@@ -8,8 +8,9 @@
             font-family: Arial, sans-serif;
             background-color: #f3f4f6;
             display: flex;
-            justify-content: center;
-            height: 100vh;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
             margin: 0;
             overflow: auto;
         }
@@ -22,6 +23,7 @@
             max-width: 800px;
             margin: 2rem;
             box-sizing: border-box;
+            flex-shrink: 0;
         }
         h1 {
             font-size: 1.5rem;
@@ -107,6 +109,21 @@
         #copy-button:hover {
             background-color: #22c55e;
         }
+        footer {
+            width: 100%;
+            text-align: center;
+            color: #9ca3af;
+            font-size: 0.8em;
+            padding: 15px 10px;
+            margin-top: auto;
+        }
+        footer a {
+            color: #6b7280;
+            text-decoration: none;
+        }
+        footer a:hover {
+            text-decoration: underline;
+        }
 
         @media (max-width: 600px) {
             .container {
@@ -167,5 +184,13 @@
             }
         });
     </script>
+    <footer>
+        <p>
+            <a href="https://github.com/UnitVectorY-Labs">UnitVectorY Labs</a> | 
+            <a href="https://opensource.org/licenses/MIT">MIT License</a> | 
+            <a href="https://github.com/UnitVectorY-Labs/gcpidentitytokenportal"><strong>gcpidentitytokenportal</strong> on GitHub</a>
+        </p>
+        <p>Version: {{ version }}</p>
+    </footer>
 </body>
 </html>
