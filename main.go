@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"embed"
 	"encoding/json"
 	"fmt"
 	"html/template"
@@ -19,6 +20,9 @@ import (
 	"github.com/UnitVectorY-Labs/gcpidentitytokenportal/internal/logging"
 	token "github.com/UnitVectorY-Labs/gcpidentitytokenportal/internal/token"
 )
+
+//go:embed templates/*
+var templatesFS embed.FS
 
 // Version information set at build time
 var (
@@ -212,8 +216,8 @@ func main() {
 		"audiences_count":   len(cfg.Audiences),
 	})
 
-	// Parse HTML template
-	tmpl, err := template.ParseFiles("templates/index.html")
+	// Parse HTML template from embedded filesystem
+	tmpl, err := template.ParseFS(templatesFS, "templates/index.html")
 	if err != nil {
 		startupLogger.Error(ctx, "failed to parse template", logging.Fields{
 			"error": err.Error(),
