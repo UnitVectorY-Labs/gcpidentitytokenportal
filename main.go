@@ -43,7 +43,7 @@ func handleIndex(tmpl *template.Template, cfg Config) http.HandlerFunc {
 			return
 		}
 
-		err := tmpl.Execute(w, cfg)
+		err := tmpl.ExecuteTemplate(w, "index.html", cfg)
 		if err != nil {
 			requestID := logging.GetRequestID(r.Context())
 			logger.Error(r.Context(), "template execution error", logging.Fields{
@@ -216,8 +216,10 @@ func main() {
 		"audiences_count":   len(cfg.Audiences),
 	})
 
-	// Parse HTML template from embedded filesystem
-	tmpl, err := template.ParseFS(templatesFS, "templates/index.html")
+	// Parse HTML template from embedded filesystem with version function
+	tmpl, err := template.New("").Funcs(template.FuncMap{
+		"version": func() string { return Version },
+	}).ParseFS(templatesFS, "templates/index.html")
 	if err != nil {
 		startupLogger.Error(ctx, "failed to parse template", logging.Fields{
 			"error": err.Error(),
