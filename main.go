@@ -217,7 +217,7 @@ func main() {
 	})
 
 	// Parse HTML template from embedded filesystem with version function
-	tmpl, err := template.New("").Funcs(template.FuncMap{
+	tmpl, err := template.New("index.html").Funcs(template.FuncMap{
 		"version": func() string { return Version },
 	}).ParseFS(templatesFS, "templates/index.html")
 	if err != nil {
