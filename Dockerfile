@@ -1,5 +1,5 @@
 # Use the official Golang image for building the application
-FROM golang:1.25.6 AS builder
+FROM golang:1.25.7 AS builder
 
 # Build argument for version injection (defaults to "dev")
 ARG VERSION=dev
