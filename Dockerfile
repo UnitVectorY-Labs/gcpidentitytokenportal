@@ -1,11 +1,11 @@
 # Use the official Golang image for building the application
 FROM golang:1.25.7 AS builder
 
-# Build argument for version injection (defaults to "dev")
-ARG VERSION=dev
-
 # Set the working directory inside the container
 WORKDIR /app
+
+# Build argument for version injection
+ARG VERSION=dev
 
 # Copy the Go modules manifest and download dependencies
 COPY go.mod go.sum ./
@@ -28,6 +28,9 @@ COPY --from=builder /app/server /server
 
 # Expose the port that the server will listen on
 EXPOSE 8080
+
+# Run as non-root user
+USER 65532:65532
 
 # Run the server binary
 CMD ["/server"]

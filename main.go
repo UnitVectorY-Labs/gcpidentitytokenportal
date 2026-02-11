@@ -8,6 +8,7 @@ import (
 	"html/template"
 	"net/http"
 	"os"
+	"runtime/debug"
 
 	"cloud.google.com/go/compute/metadata"
 	"golang.org/x/oauth2"
@@ -21,12 +22,14 @@ import (
 	token "github.com/UnitVectorY-Labs/gcpidentitytokenportal/internal/token"
 )
 
+// Version is the application version, injected at build time via ldflags
+var Version = "dev"
+
 //go:embed templates/*
 var templatesFS embed.FS
 
 // Version information set at build time
 var (
-	Version   = "dev"
 	BuildTime = "unknown"
 )
 
@@ -186,6 +189,15 @@ func handleServiceAccount(credentialsFile string, googleApplicationCredentials *
 }
 
 func main() {
+	// Set the build version from the build info if not set by the build system
+	if Version == "dev" || Version == "" {
+		if bi, ok := debug.ReadBuildInfo(); ok {
+			if bi.Main.Version != "" && bi.Main.Version != "(devel)" {
+				Version = bi.Main.Version
+			}
+		}
+	}
+
 	ctx := context.Background()
 
 	// Initialize logger from environment variables
@@ -212,8 +224,8 @@ func main() {
 	}
 
 	startupLogger.Info(ctx, "configuration loaded", logging.Fields{
-		"config_exists":     configExists,
-		"audiences_count":   len(cfg.Audiences),
+		"config_exists":   configExists,
+		"audiences_count": len(cfg.Audiences),
 	})
 
 	// Parse HTML template from embedded filesystem with version function
