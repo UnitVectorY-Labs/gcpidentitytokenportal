@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"maps"
 	"os"
 	"strings"
 	"sync"
@@ -72,7 +73,7 @@ func ParseFormat(s string) Format {
 }
 
 // Fields represents additional structured fields for a log entry.
-type Fields map[string]interface{}
+type Fields map[string]any
 
 // Logger provides structured logging functionality.
 type Logger struct {
@@ -128,13 +129,13 @@ func (l *Logger) WithComponent(component string) *Logger {
 
 // logEntry represents a structured log entry.
 type logEntry struct {
-	Timestamp string                 `json:"timestamp"`
-	Severity  string                 `json:"severity"`
-	Component string                 `json:"component,omitempty"`
-	RequestID string                 `json:"request_id,omitempty"`
-	Route     string                 `json:"route,omitempty"`
-	Message   string                 `json:"message"`
-	Fields    map[string]interface{} `json:"fields,omitempty"`
+	Timestamp string         `json:"timestamp"`
+	Severity  string         `json:"severity"`
+	Component string         `json:"component,omitempty"`
+	RequestID string         `json:"request_id,omitempty"`
+	Route     string         `json:"route,omitempty"`
+	Message   string         `json:"message"`
+	Fields    map[string]any `json:"fields,omitempty"`
 }
 
 func (l *Logger) log(ctx context.Context, level Level, msg string, fields Fields) {
@@ -242,9 +243,7 @@ func mergeFields(fields []Fields) Fields {
 		if f == nil {
 			continue
 		}
-		for k, v := range f {
-			result[k] = v
-		}
+		maps.Copy(result, f)
 	}
 	return result
 }
