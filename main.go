@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"runtime/debug"
+	"slices"
 
 	"cloud.google.com/go/compute/metadata"
 	"golang.org/x/oauth2"
@@ -79,13 +80,7 @@ func handleToken(ctx context.Context, cfg Config, credentialsFile string, google
 		audience := r.FormValue("audience")
 
 		if len(cfg.Audiences) > 0 {
-			valid := false
-			for _, a := range cfg.Audiences {
-				if a == audience {
-					valid = true
-					break
-				}
-			}
+			valid := slices.Contains(cfg.Audiences, audience)
 			if !valid {
 				logger.Warn(r.Context(), "invalid audience selected", logging.Fields{
 					"error_category": string(apperrors.AudienceInvalid),
@@ -181,10 +176,10 @@ func handleServiceAccount(credentialsFile string, googleApplicationCredentials *
 		}
 
 		w.Header().Set("Content-Type", "text/html")
-		w.Write([]byte(fmt.Sprintf(`
+		w.Write(fmt.Appendf(nil, `
 		<label>Service Account:</label>
 		<input type="text" value="%s" disabled>
-	`, email)))
+	`, email))
 	}
 }
 

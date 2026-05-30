@@ -33,7 +33,7 @@ func SanitizeJSON(data []byte) string {
 		return ""
 	}
 
-	var parsed map[string]interface{}
+	var parsed map[string]any
 	if err := json.Unmarshal(data, &parsed); err != nil {
 		// If not valid JSON, try to sanitize as plain text
 		return SanitizeString(string(data))
@@ -49,8 +49,8 @@ func SanitizeJSON(data []byte) string {
 }
 
 // sanitizeMap recursively redacts sensitive fields from a map
-func sanitizeMap(m map[string]interface{}) map[string]interface{} {
-	result := make(map[string]interface{})
+func sanitizeMap(m map[string]any) map[string]any {
+	result := make(map[string]any)
 
 	for key, value := range m {
 		if isSensitiveField(key) {
@@ -59,9 +59,9 @@ func sanitizeMap(m map[string]interface{}) map[string]interface{} {
 		}
 
 		switch v := value.(type) {
-		case map[string]interface{}:
+		case map[string]any:
 			result[key] = sanitizeMap(v)
-		case []interface{}:
+		case []any:
 			result[key] = sanitizeSlice(v)
 		case string:
 			result[key] = SanitizeString(v)
@@ -74,14 +74,14 @@ func sanitizeMap(m map[string]interface{}) map[string]interface{} {
 }
 
 // sanitizeSlice recursively sanitizes elements in a slice
-func sanitizeSlice(s []interface{}) []interface{} {
-	result := make([]interface{}, len(s))
+func sanitizeSlice(s []any) []any {
+	result := make([]any, len(s))
 
 	for i, value := range s {
 		switch v := value.(type) {
-		case map[string]interface{}:
+		case map[string]any:
 			result[i] = sanitizeMap(v)
-		case []interface{}:
+		case []any:
 			result[i] = sanitizeSlice(v)
 		case string:
 			result[i] = SanitizeString(v)
@@ -127,8 +127,8 @@ func ExtractGoogleError(body []byte) (code int, status string, message string) {
 	if err := json.Unmarshal(body, &errResp); err != nil {
 		// Try alternative format without nested error object
 		var altResp struct {
-			ErrorCode    string `json:"error"`
-			ErrorDesc    string `json:"error_description"`
+			ErrorCode string `json:"error"`
+			ErrorDesc string `json:"error_description"`
 		}
 		if err := json.Unmarshal(body, &altResp); err != nil {
 			return 0, "", SanitizeString(string(body))
