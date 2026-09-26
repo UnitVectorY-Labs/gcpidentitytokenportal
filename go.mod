@@ -3,7 +3,7 @@ module github.com/UnitVectorY-Labs/gcpidentitytokenportal
 go 1.27 // GOVERSION
 
 require (
-	cloud.google.com/go/compute/metadata v0.9.0
+	cloud.google.com/go/compute/metadata v0.9.1
 	github.com/google/uuid v1.6.0
 	golang.org/x/oauth2 v0.37.0
 	google.golang.org/api v0.298.0
