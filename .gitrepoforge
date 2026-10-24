@@ -1,6 +1,7 @@
 name: "gcpidentitytokenportal"
 default_branch: "main"
 config:
+  osv: sarif
   description: "Web portal for vending GCP identity tokens via metadata service with flexible audience selection."
   license: "MIT"
   language: "go"
