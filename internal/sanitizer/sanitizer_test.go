@@ -19,48 +19,48 @@ func TestSanitizeJSON(t *testing.T) {
 			expected: "",
 		},
 		{
-			name:  "access_token field",
-			input: []byte(`{"access_token":"ya29.secret-token-value"}`),
+			name:     "access_token field",
+			input:    []byte(`{"access_token":"ya29.secret-token-value"}`),
 			contains: []string{"[REDACTED]"},
 			excludes: []string{"ya29", "secret-token-value"},
 		},
 		{
-			name:  "id_token field",
-			input: []byte(`{"id_token":"eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.signature"}`),
+			name:     "id_token field",
+			input:    []byte(`{"id_token":"eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.signature"}`),
 			contains: []string{"[REDACTED]"},
 			excludes: []string{"eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9"},
 		},
 		{
-			name:  "token field",
-			input: []byte(`{"token":"secret-identity-token"}`),
+			name:     "token field",
+			input:    []byte(`{"token":"secret-identity-token"}`),
 			contains: []string{"[REDACTED]"},
 			excludes: []string{"secret-identity-token"},
 		},
 		{
-			name:  "subject_token field",
-			input: []byte(`{"subject_token":"kubernetes-sa-token.jwt.value"}`),
+			name:     "subject_token field",
+			input:    []byte(`{"subject_token":"kubernetes-sa-token.jwt.value"}`),
 			contains: []string{"[REDACTED]"},
 			excludes: []string{"kubernetes-sa-token"},
 		},
 		{
-			name:  "nested sensitive field",
-			input: []byte(`{"response":{"access_token":"secret","expires_in":3600}}`),
+			name:     "nested sensitive field",
+			input:    []byte(`{"response":{"access_token":"secret","expires_in":3600}}`),
 			contains: []string{"[REDACTED]", "expires_in", "3600"},
 			excludes: []string{"secret"},
 		},
 		{
-			name:  "error response preserved",
-			input: []byte(`{"error":{"code":403,"status":"PERMISSION_DENIED","message":"Access denied"}}`),
+			name:     "error response preserved",
+			input:    []byte(`{"error":{"code":403,"status":"PERMISSION_DENIED","message":"Access denied"}}`),
 			contains: []string{"403", "PERMISSION_DENIED", "Access denied"},
 		},
 		{
-			name:  "STS error response",
-			input: []byte(`{"error":"invalid_grant","error_description":"Token has expired"}`),
+			name:     "STS error response",
+			input:    []byte(`{"error":"invalid_grant","error_description":"Token has expired"}`),
 			contains: []string{"invalid_grant", "Token has expired"},
 		},
 		{
-			name:  "mixed content with JWT in message",
-			input: []byte(`{"error":{"message":"Invalid token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.dozjgNryP4J3jVmNHl0w"}}`),
+			name:     "mixed content with JWT in message",
+			input:    []byte(`{"error":{"message":"Invalid token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.dozjgNryP4J3jVmNHl0w"}}`),
 			contains: []string{"[REDACTED_JWT]"},
 			excludes: []string{"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9"},
 		},
@@ -134,46 +134,46 @@ func TestSanitizeString(t *testing.T) {
 
 func TestExtractGoogleError(t *testing.T) {
 	tests := []struct {
-		name         string
-		input        []byte
-		expectedCode int
+		name           string
+		input          []byte
+		expectedCode   int
 		expectedStatus string
-		expectedMsg  string
+		expectedMsg    string
 	}{
 		{
-			name:         "empty input",
-			input:        []byte{},
-			expectedCode: 0,
+			name:           "empty input",
+			input:          []byte{},
+			expectedCode:   0,
 			expectedStatus: "",
-			expectedMsg:  "",
+			expectedMsg:    "",
 		},
 		{
-			name:         "standard Google error",
-			input:        []byte(`{"error":{"code":403,"status":"PERMISSION_DENIED","message":"Access denied to resource"}}`),
-			expectedCode: 403,
+			name:           "standard Google error",
+			input:          []byte(`{"error":{"code":403,"status":"PERMISSION_DENIED","message":"Access denied to resource"}}`),
+			expectedCode:   403,
 			expectedStatus: "PERMISSION_DENIED",
-			expectedMsg:  "Access denied to resource",
+			expectedMsg:    "Access denied to resource",
 		},
 		{
-			name:         "STS OAuth error format",
-			input:        []byte(`{"error":"invalid_grant","error_description":"Token has expired"}`),
-			expectedCode: 0,
+			name:           "STS OAuth error format",
+			input:          []byte(`{"error":"invalid_grant","error_description":"Token has expired"}`),
+			expectedCode:   0,
 			expectedStatus: "invalid_grant",
-			expectedMsg:  "Token has expired",
+			expectedMsg:    "Token has expired",
 		},
 		{
-			name:         "error with JWT in message",
-			input:        []byte(`{"error":{"code":400,"status":"INVALID_ARGUMENT","message":"Bad token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.dozjgNryP4J3jVmNHl0w"}}`),
-			expectedCode: 400,
+			name:           "error with JWT in message",
+			input:          []byte(`{"error":{"code":400,"status":"INVALID_ARGUMENT","message":"Bad token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.dozjgNryP4J3jVmNHl0w"}}`),
+			expectedCode:   400,
 			expectedStatus: "INVALID_ARGUMENT",
-			expectedMsg:  "Bad token: [REDACTED_JWT]",
+			expectedMsg:    "Bad token: [REDACTED_JWT]",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			code, status, msg := ExtractGoogleError(tt.input)
-			
+
 			if code != tt.expectedCode {
 				t.Errorf("expected code %d, got %d", tt.expectedCode, code)
 			}
@@ -184,5 +184,21 @@ func TestExtractGoogleError(t *testing.T) {
 				t.Errorf("expected message %q, got %q", tt.expectedMsg, msg)
 			}
 		})
+	}
+}
+
+func TestInvalidJSONDoesNotExposeTokens(t *testing.T) {
+	for _, input := range [][]byte{
+		[]byte(`{"access_token":"secret","access_token":"other"}`),
+		[]byte("{\"access_token\":\"secret\",\"bad\":\"\xff\"}"),
+		[]byte(`{"access_token":"secret"`),
+	} {
+		if got := SanitizeJSON(input); strings.Contains(got, "secret") || strings.Contains(got, "other") {
+			t.Errorf("SanitizeJSON exposed a token: %q", got)
+		}
+		_, _, got := ExtractGoogleError(input)
+		if strings.Contains(got, "secret") || strings.Contains(got, "other") {
+			t.Errorf("ExtractGoogleError exposed a token: %q", got)
+		}
 	}
 }
