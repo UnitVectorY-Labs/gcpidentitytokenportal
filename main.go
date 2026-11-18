@@ -3,7 +3,7 @@ package main
 import (
 	"context"
 	"embed"
-	"encoding/json"
+	"encoding/json/v2"
 	"fmt"
 	"html/template"
 	"net/http"

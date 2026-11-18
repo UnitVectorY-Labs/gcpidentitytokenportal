@@ -2,7 +2,7 @@
 package handlers
 
 import (
-	"encoding/json"
+	"encoding/json/v2"
 	"html/template"
 	"net/http"
 	"os"
@@ -20,11 +20,11 @@ func HealthzHandler() http.HandlerFunc {
 
 // ReadyzConfig holds the configuration for the readiness check.
 type ReadyzConfig struct {
-	Template                      *template.Template
-	ConfigLoaded                  bool
-	CredentialsRequired           bool
-	CredentialsFile               string
-	GoogleApplicationCredentials  *gcp_config.GoogleApplicationCredentials
+	Template                     *template.Template
+	ConfigLoaded                 bool
+	CredentialsRequired          bool
+	CredentialsFile              string
+	GoogleApplicationCredentials *gcp_config.GoogleApplicationCredentials
 }
 
 // ReadyzHandler returns a readiness check handler.
@@ -66,14 +66,14 @@ type DebugzConfig struct {
 
 // DebugzResponse represents the response from the debug endpoint.
 type DebugzResponse struct {
-	Mode                   string `json:"mode"`
-	ImpersonationEmail     string `json:"impersonation_email,omitempty"`
-	WIFAudience            string `json:"wif_audience,omitempty"`
-	TokenFileExists        bool   `json:"token_file_exists"`
-	TokenFileReadable      bool   `json:"token_file_readable"`
-	ConfigExists           bool   `json:"config_exists"`
-	AllowedAudiencesCount  int    `json:"allowed_audiences_count"`
-	RequestID              string `json:"request_id,omitempty"`
+	Mode                  string `json:"mode"`
+	ImpersonationEmail    string `json:"impersonation_email,omitempty"`
+	WIFAudience           string `json:"wif_audience,omitempty"`
+	TokenFileExists       bool   `json:"token_file_exists"`
+	TokenFileReadable     bool   `json:"token_file_readable"`
+	ConfigExists          bool   `json:"config_exists"`
+	AllowedAudiencesCount int    `json:"allowed_audiences_count"`
+	RequestID             string `json:"request_id,omitempty"`
 }
 
 // DebugzHandler returns a debug diagnostics handler.
@@ -105,6 +105,8 @@ func DebugzHandler(cfg DebugzConfig) http.HandlerFunc {
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(resp)
+		if err := json.MarshalWrite(w, resp); err == nil {
+			w.Write([]byte("\n"))
+		}
 	}
 }

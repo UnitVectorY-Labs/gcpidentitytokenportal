@@ -2,7 +2,7 @@
 package sanitizer
 
 import (
-	"encoding/json"
+	"encoding/json/v2"
 	"regexp"
 	"strings"
 )
@@ -35,14 +35,14 @@ func SanitizeJSON(data []byte) string {
 
 	var parsed map[string]any
 	if err := json.Unmarshal(data, &parsed); err != nil {
-		// If not valid JSON, try to sanitize as plain text
-		return SanitizeString(string(data))
+		// Invalid JSON may contain secrets that cannot be safely identified.
+		return "[REDACTED]"
 	}
 
 	sanitized := sanitizeMap(parsed)
 	result, err := json.Marshal(sanitized)
 	if err != nil {
-		return SanitizeString(string(data))
+		return "[REDACTED]"
 	}
 
 	return string(result)
@@ -131,7 +131,7 @@ func ExtractGoogleError(body []byte) (code int, status string, message string) {
 			ErrorDesc string `json:"error_description"`
 		}
 		if err := json.Unmarshal(body, &altResp); err != nil {
-			return 0, "", SanitizeString(string(body))
+			return 0, "", "[REDACTED]"
 		}
 		return 0, altResp.ErrorCode, SanitizeString(altResp.ErrorDesc)
 	}
