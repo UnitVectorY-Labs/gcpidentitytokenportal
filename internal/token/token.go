@@ -3,7 +3,7 @@ package token
 import (
 	"bytes"
 	"context"
-	"encoding/json"
+	"encoding/json/v2"
 	"io"
 	"net/http"
 	"os"
@@ -138,26 +138,26 @@ func exchangeToken(ctx context.Context, config *gcp_config.GoogleApplicationCred
 	if resp.StatusCode != http.StatusOK {
 		respBody, _ := io.ReadAll(resp.Body)
 		code, status, message := sanitizer.ExtractGoogleError(respBody)
-		
+
 		catErr := apperrors.New(apperrors.STSNon200, "STS returned non-OK status", nil).
 			WithOperation(operation).
 			WithStatusCode(resp.StatusCode)
-		
+
 		logger.Error(ctx, "STS returned error", logging.Fields{
-			"error_category":   string(catErr.Category),
-			"operation":        operation,
-			"host":             "sts.googleapis.com",
-			"http_status":      resp.StatusCode,
-			"google_code":      code,
-			"google_status":    status,
+			"error_category":    string(catErr.Category),
+			"operation":         operation,
+			"host":              "sts.googleapis.com",
+			"http_status":       resp.StatusCode,
+			"google_code":       code,
+			"google_status":     status,
 			"sanitized_message": message,
-			"latency_ms":       latency.Milliseconds(),
+			"latency_ms":        latency.Milliseconds(),
 		})
 		return "", catErr
 	}
 
 	var stsResp STSResponse
-	if err := json.NewDecoder(resp.Body).Decode(&stsResp); err != nil {
+	if err := json.UnmarshalRead(resp.Body, &stsResp); err != nil {
 		catErr := apperrors.New(apperrors.STSResponseDecodeError, "failed to decode STS response", err).WithOperation(operation)
 		logger.Error(ctx, "STS response decode error", logging.Fields{
 			"error_category": string(catErr.Category),
@@ -251,11 +251,11 @@ func generateIdentityToken(ctx context.Context, config *gcp_config.GoogleApplica
 	if resp.StatusCode != http.StatusOK {
 		respBody, _ := io.ReadAll(resp.Body)
 		code, status, message := sanitizer.ExtractGoogleError(respBody)
-		
+
 		catErr := apperrors.New(apperrors.IAMNon200, "IAM returned non-OK status", nil).
 			WithOperation(operation).
 			WithStatusCode(resp.StatusCode)
-		
+
 		logger.Error(ctx, "IAM returned error", logging.Fields{
 			"error_category":    string(catErr.Category),
 			"operation":         operation,
@@ -270,7 +270,7 @@ func generateIdentityToken(ctx context.Context, config *gcp_config.GoogleApplica
 	}
 
 	var iamResp IAMResponse
-	if err := json.NewDecoder(resp.Body).Decode(&iamResp); err != nil {
+	if err := json.UnmarshalRead(resp.Body, &iamResp); err != nil {
 		catErr := apperrors.New(apperrors.IAMResponseDecodeError, "failed to decode IAM response", err).WithOperation(operation)
 		logger.Error(ctx, "IAM response decode error", logging.Fields{
 			"error_category": string(catErr.Category),
